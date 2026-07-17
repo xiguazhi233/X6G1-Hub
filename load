@@ -171,6 +171,41 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     end
 end)
 
+local activeBinds = {}
+local currentRowWaitingForKey = nil
+local bindButtonReferences = {}
+local keyBindGetters = {}
+local keyBindSetters = {}
+local toggleButtonTweens = {}
+local rowFunctionData = {}
+
+local KeyBinds = {
+    melee = nil,
+    noRecoil = nil,
+    fly = nil,
+    noclip = nil,
+    infiniteStamina = nil,
+    nofalldamage = nil,
+    nobarriers = nil,
+    esp = nil,
+    invis = nil,
+    safeESP = nil,
+    fullbright = nil,
+    fov = nil,
+    autodoors = nil,
+    unlockdoors = nil,
+    autopickupmoney = nil,
+    autopickupscraps = nil,
+    autopickuptools = nil,
+    fastpickup = nil,
+    nofaillockpick = nil,
+    fakedown = nil,
+    stopneckmove = nil,
+    unbreaklimbs = nil,
+    instantreload = nil,
+    admincheck = nil,
+}
+
 local NoFailLockpick_Enabled = false
 local lockpickAddedConnection = nil
 function NoFailLockpick_Enable()
@@ -1253,8 +1288,10 @@ local buttonStrokeColor = Color3.fromRGB(60,60,75)
 local buttonTextColor = Color3.fromRGB(210,210,210)
 local buttonOnColor = Color3.fromRGB(70,180,100)
 local buttonOffColor = Color3.fromRGB(200,80,80)
+local bindButtonColor = Color3.fromRGB(45,45,55)
+local bindButtonHoverColor = Color3.fromRGB(60,60,75)
 
-local function createToggleRowFrame(scriptName, canToggle, isEnabledFn, onEnable, onDisable)
+local function createToggleRowFrame(scriptName, canToggle, isEnabledFn, onEnable, onDisable, getKeyBindFn, setKeyBindFn)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -20, 0, 35)
     frame.BackgroundTransparency = 1
@@ -1269,7 +1306,7 @@ local function createToggleRowFrame(scriptName, canToggle, isEnabledFn, onEnable
     horizontalLayout.Parent = frame
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.55, 0, 1, 0)
+    label.Size = UDim2.new(0.45, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.Text = " " .. scriptName
     label.TextColor3 = buttonTextColor
@@ -1280,7 +1317,7 @@ local function createToggleRowFrame(scriptName, canToggle, isEnabledFn, onEnable
     label.Parent = frame
 
     local toggleButton = Instance.new("TextButton")
-    toggleButton.Size = UDim2.new(0.35, 0, 0.8, 0)
+    toggleButton.Size = UDim2.new(0.25, 0, 0.8, 0)
     toggleButton.Font = Enum.Font.GothamBold
     toggleButton.TextSize = 12
     toggleButton.TextColor3 = Color3.fromRGB(255,255,255)
@@ -1298,6 +1335,7 @@ local function createToggleRowFrame(scriptName, canToggle, isEnabledFn, onEnable
     toggleStroke.Thickness = 1
     toggleStroke.Parent = toggleButton
 
+    local bindButton = nil
     local function getTargetToggleColor()
         local enabledState = false
         if type(isEnabledFn) == 'function' then
@@ -1322,6 +1360,72 @@ local function createToggleRowFrame(scriptName, canToggle, isEnabledFn, onEnable
         toggleButton.BackgroundColor3 = targetColor
     end
 
+    rowFunctionData[frame] = {
+        isEnabledFn = isEnabledFn,
+        onEnable = onEnable,
+        onDisable = onDisable,
+        canToggle = canToggle,
+        updateFn = updateToggleButtonVisuals
+    }
+
+    if getKeyBindFn and setKeyBindFn then
+        bindButton = Instance.new("TextButton")
+        bindButton.Size = UDim2.new(0.25, 0, 0.8, 0)
+        bindButton.Font = Enum.Font.GothamMedium
+        bindButton.TextSize = 12
+        bindButton.TextColor3 = buttonTextColor
+        bindButton.BackgroundColor3 = bindButtonColor
+        bindButton.BorderSizePixel = 0
+        bindButton.AutoButtonColor = false
+        bindButton.LayoutOrder = 3
+        bindButton.Parent = frame
+
+        local bindCorner = Instance.new("UICorner")
+        bindCorner.CornerRadius = UDim.new(0, 6)
+        bindCorner.Parent = bindButton
+        local bindStroke = Instance.new("UIStroke")
+        bindStroke.Color = buttonStrokeColor
+        bindStroke.Thickness = 1
+        bindStroke.Parent = bindButton
+
+        bindButtonReferences[frame] = bindButton
+        keyBindGetters[frame] = getKeyBindFn
+        keyBindSetters[frame] = setKeyBindFn
+
+        local initialKey = nil
+        local success, result = pcall(getKeyBindFn)
+        if success and result and typeof(result)=="EnumItem" then
+            initialKey = result
+            if rowFunctionData[frame] then
+                activeBinds[initialKey] = {
+                    frame = frame,
+                    toggleButton = toggleButton,
+                    isEnabledFn = rowFunctionData[frame].isEnabledFn,
+                    onEnable = rowFunctionData[frame].onEnable,
+                    onDisable = rowFunctionData[frame].onDisable,
+                    canToggle = rowFunctionData[frame].canToggle,
+                    updateFn = rowFunctionData[frame].updateFn
+                }
+            end
+        end
+    else
+        toggleButton.Size = UDim2.new(0.5, 0, 0.8, 0)
+        horizontalLayout.Padding = UDim.new(0, 10)
+    end
+
+    local function updateBindButtonText()
+        if not bindButton then return end
+        local kb = nil
+        if type(getKeyBindFn) == 'function' then
+            local success, result = pcall(getKeyBindFn)
+            if success then kb = result end
+        end
+        bindButton.Text = kb and typeof(kb)=="EnumItem" and kb.Name~="Unknown" and "["..kb.Name.."]" or "绑定"
+    end
+
+    updateToggleButtonVisuals()
+    if bindButton then updateBindButtonText() end
+
     toggleButton.MouseEnter:Connect(function()
         local targetColor = getTargetToggleColor()
         TweenService:Create(toggleButton, TweenInfo.new(0.1), {BackgroundColor3 = targetColor:Lerp(Color3.new(1,1,1),0.2)}):Play()
@@ -1331,14 +1435,59 @@ local function createToggleRowFrame(scriptName, canToggle, isEnabledFn, onEnable
         TweenService:Create(toggleButton, TweenInfo.new(0.1), {BackgroundColor3 = targetColor}):Play()
     end)
 
+    if bindButton then
+        bindButton.MouseEnter:Connect(function()
+            TweenService:Create(bindButton, TweenInfo.new(0.1), {BackgroundColor3 = bindButtonHoverColor}):Play()
+        end)
+        bindButton.MouseLeave:Connect(function()
+            TweenService:Create(bindButton, TweenInfo.new(0.1), {BackgroundColor3 = bindButtonColor}):Play()
+        end)
+
+        local capturingKey = false
+        bindButton.MouseButton1Click:Connect(function()
+            if currentRowWaitingForKey and currentRowWaitingForKey ~= frame then
+                local prevBindButton = bindButtonReferences[currentRowWaitingForKey]
+                if prevBindButton then
+                    local getter = keyBindGetters[currentRowWaitingForKey]
+                    local prevKeyText = "绑定"
+                    if getter then
+                        local s,r = pcall(getter)
+                        if s and r and typeof(r)=="EnumItem" then prevKeyText = "["..r.Name.."]" end
+                    end
+                    prevBindButton.Text = prevKeyText
+                end
+            end
+            if capturingKey then
+                capturingKey = false
+                updateBindButtonText()
+                currentRowWaitingForKey = nil
+            else
+                capturingKey = true
+                bindButton.Text = "..."
+                currentRowWaitingForKey = frame
+                task.delay(5, function()
+                    if capturingKey and currentRowWaitingForKey == frame then
+                        capturingKey = false
+                        updateBindButtonText()
+                        currentRowWaitingForKey = nil
+                    end
+                end)
+            end
+        end)
+    end
+
     toggleButton.MouseButton1Click:Connect(function()
         local enabledState = false
         if type(isEnabledFn)=='function' then
-            local s,r=pcall(isEnabledFn); if s then enabledState=r end
+            local s,r = pcall(isEnabledFn)
+            if s then enabledState = r end
         end
         if not canToggle then
             if type(onEnable)=='function' then pcall(onEnable) end
-            toggleButton.Text="完成"; toggleButton.BackgroundColor3=buttonOnColor:Lerp(Color3.fromRGB(15,15,20),0.3); toggleButton.Active=false
+            toggleButton.Text="完成"
+            toggleButton.BackgroundColor3 = buttonOnColor:Lerp(Color3.fromRGB(15,15,20),0.3)
+            toggleButton.Active = false
+            if bindButton then bindButton.Active = false end
             return
         end
         if enabledState then
@@ -1349,9 +1498,74 @@ local function createToggleRowFrame(scriptName, canToggle, isEnabledFn, onEnable
         updateToggleButtonVisuals()
     end)
 
-    updateToggleButtonVisuals()
     return frame
 end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    local keyCode = input.KeyCode
+    if keyCode == Enum.KeyCode.Unknown then return end
+    if currentRowWaitingForKey then
+        local frame = currentRowWaitingForKey
+        local bindButton = bindButtonReferences[frame]
+        local getKeyFn = keyBindGetters[frame]
+        local setKeyFn = keyBindSetters[frame]
+        local frameData = rowFunctionData[frame]
+        if bindButton and getKeyFn and setKeyFn and frameData then
+            local oldKey = nil
+            local successGet, resultGet = pcall(getKeyFn)
+            if successGet then oldKey = resultGet end
+            if oldKey and activeBinds[oldKey] and activeBinds[oldKey].frame == frame then
+                activeBinds[oldKey] = nil
+            end
+            if activeBinds[keyCode] and activeBinds[keyCode].frame ~= frame then
+                local otherFrame = activeBinds[keyCode].frame
+                local otherBindButton = bindButtonReferences[otherFrame]
+                local otherSetKeyFn = keyBindSetters[otherFrame]
+                if otherSetKeyFn then pcall(otherSetKeyFn, nil) end
+                if otherBindButton then otherBindButton.Text = "绑定" end
+                activeBinds[keyCode] = nil
+            end
+            pcall(setKeyFn, keyCode)
+            local toggleButton = nil
+            for _, child in pairs(frame:GetChildren()) do
+                if child:IsA("TextButton") and child ~= bindButton then toggleButton = child; break end
+            end
+            if toggleButton then
+                activeBinds[keyCode] = {
+                    frame = frame,
+                    toggleButton = toggleButton,
+                    isEnabledFn = frameData.isEnabledFn,
+                    onEnable = frameData.onEnable,
+                    onDisable = frameData.onDisable,
+                    canToggle = frameData.canToggle,
+                    updateFn = frameData.updateFn
+                }
+            end
+            bindButton.Text = "["..input.KeyCode.Name.."]"
+            currentRowWaitingForKey = nil
+        else
+            if bindButton then bindButton.Text = "绑定" end
+            currentRowWaitingForKey = nil
+        end
+    elseif activeBinds[keyCode] then
+        local bindInfo = activeBinds[keyCode]
+        if bindInfo.frame and bindInfo.isEnabledFn and bindInfo.onEnable and bindInfo.onDisable and bindInfo.updateFn and bindInfo.canToggle ~= nil then
+            if bindInfo.canToggle then
+                local success, currentState = pcall(bindInfo.isEnabledFn)
+                if success then
+                    if currentState then
+                        pcall(bindInfo.onDisable)
+                    else
+                        pcall(bindInfo.onEnable)
+                    end
+                    task.wait()
+                    pcall(bindInfo.updateFn)
+                end
+            end
+        end
+    end
+end)
 
 local Categories = {"战斗","移动","视觉","自动","杂项"}
 local CategoryButtons = {}
@@ -1395,16 +1609,14 @@ for i, categoryName in ipairs(Categories) do
         end
     end)
     catButton.MouseButton1Click:Connect(function()
-        local categoryButton = catButton
-        local categoryName = categoryName
-        if categoryButton == ActiveCategoryButton then return end
+        if catButton == ActiveCategoryButton then return end
         if ActiveCategoryButton then
             TweenService:Create(ActiveCategoryButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20,20,25)}):Play()
             ActiveCategoryButton.TextLabel.TextColor3 = Color3.fromRGB(180,180,190)
         end
-        TweenService:Create(categoryButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40,40,50)}):Play()
-        categoryButton.TextLabel.TextColor3 = Color3.fromRGB(230,230,230)
-        ActiveCategoryButton = categoryButton
+        TweenService:Create(catButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40,40,50)}):Play()
+        catButton.TextLabel.TextColor3 = Color3.fromRGB(230,230,230)
+        ActiveCategoryButton = catButton
 
         for _, child in ipairs(contentFrame:GetChildren()) do
             if child:IsA("Frame") and child.Name ~= "UIListLayout" and child.Name ~= "UICorner" then
@@ -1428,58 +1640,35 @@ for i, categoryName in ipairs(Categories) do
     CategoryButtons[categoryName] = catButton
 end
 
-table.insert(CategoryFrames["战斗"],
-    createToggleRowFrame("近战光环", true, function() return MeleeAura_Enabled end, MeleeAura_Enable, MeleeAura_Disable))
-table.insert(CategoryFrames["战斗"],
-    createToggleRowFrame("无后坐力", true, function() return NoRecoil_Enabled end, NoRecoil_Enable, NoRecoil_Disable))
+-- 手动填充每个分类，使用中文名称
+table.insert(CategoryFrames["战斗"], createToggleRowFrame("近战光环", true, function() return MeleeAura_Enabled end, MeleeAura_Enable, MeleeAura_Disable, function() return KeyBinds.melee end, function(v) KeyBinds.melee = v end))
+table.insert(CategoryFrames["战斗"], createToggleRowFrame("无后坐力", true, function() return NoRecoil_Enabled end, NoRecoil_Enable, NoRecoil_Disable, function() return KeyBinds.noRecoil end, function(v) KeyBinds.noRecoil = v end))
 
-table.insert(CategoryFrames["移动"],
-    createToggleRowFrame("飞行", true, function() return Fly_Enabled end, Fly_Enable, Fly_Disable))
-table.insert(CategoryFrames["移动"],
-    createToggleRowFrame("穿墙", true, function() return Noclip_Enabled end, Noclip_Enable, Noclip_Disable))
-table.insert(CategoryFrames["移动"],
-    createToggleRowFrame("无限耐力", true, function() return isInfiniteStaminaEnabled end, InfiniteStamina_Enable, InfiniteStamina_Disable))
-table.insert(CategoryFrames["移动"],
-    createToggleRowFrame("无摔落伤害", true, function() return Nofalldamage_Enabled end, Nofalldamage_Enable, Nofalldamage_Disable))
-table.insert(CategoryFrames["移动"],
-    createToggleRowFrame("无屏障", true, function() return NoBarriers_Enabled end, NoBarriers_Enable, NoBarriers_Disable))
+table.insert(CategoryFrames["移动"], createToggleRowFrame("飞行", true, function() return Fly_Enabled end, Fly_Enable, Fly_Disable, function() return KeyBinds.fly end, function(v) KeyBinds.fly = v end))
+table.insert(CategoryFrames["移动"], createToggleRowFrame("穿墙", true, function() return Noclip_Enabled end, Noclip_Enable, Noclip_Disable, function() return KeyBinds.noclip end, function(v) KeyBinds.noclip = v end))
+table.insert(CategoryFrames["移动"], createToggleRowFrame("无限耐力", true, function() return isInfiniteStaminaEnabled end, InfiniteStamina_Enable, InfiniteStamina_Disable, function() return KeyBinds.infiniteStamina end, function(v) KeyBinds.infiniteStamina = v end))
+table.insert(CategoryFrames["移动"], createToggleRowFrame("无摔落伤害", true, function() return Nofalldamage_Enabled end, Nofalldamage_Enable, Nofalldamage_Disable, function() return KeyBinds.nofalldamage end, function(v) KeyBinds.nofalldamage = v end))
+table.insert(CategoryFrames["移动"], createToggleRowFrame("无屏障", true, function() return NoBarriers_Enabled end, NoBarriers_Enable, NoBarriers_Disable, function() return KeyBinds.nobarriers end, function(v) KeyBinds.nobarriers = v end))
 
-table.insert(CategoryFrames["视觉"],
-    createToggleRowFrame("ESP (高亮+信息)", true, function() return ESP_Enabled end, ESP_Enable, ESP_Disable))
-table.insert(CategoryFrames["视觉"],
-    createToggleRowFrame("隐身", true, function() return Invis_Enabled end, Invis_Enable, Invis_Disable))
-table.insert(CategoryFrames["视觉"],
-    createToggleRowFrame("保险箱透视", true, function() return BredMakurz_Enabled end, BredMakurz_Enable, BredMakurz_Disable))
-table.insert(CategoryFrames["视觉"],
-    createToggleRowFrame("全亮", true, function() return FullBright_Enabled end, FullBright_Enable, FullBright_Disable))
-table.insert(CategoryFrames["视觉"],
-    createToggleRowFrame("视野", true, function() return Fov_Enabled end, Fov_Enable, Fov_Disable))
+table.insert(CategoryFrames["视觉"], createToggleRowFrame("ESP", true, function() return ESP_Enabled end, ESP_Enable, ESP_Disable, function() return KeyBinds.esp end, function(v) KeyBinds.esp = v end))
+table.insert(CategoryFrames["视觉"], createToggleRowFrame("隐身", true, function() return Invis_Enabled end, Invis_Enable, Invis_Disable, function() return KeyBinds.invis end, function(v) KeyBinds.invis = v end))
+table.insert(CategoryFrames["视觉"], createToggleRowFrame("保险箱透视", true, function() return BredMakurz_Enabled end, BredMakurz_Enable, BredMakurz_Disable, function() return KeyBinds.safeESP end, function(v) KeyBinds.safeESP = v end))
+table.insert(CategoryFrames["视觉"], createToggleRowFrame("全亮", true, function() return FullBright_Enabled end, FullBright_Enable, FullBright_Disable, function() return KeyBinds.fullbright end, function(v) KeyBinds.fullbright = v end))
+table.insert(CategoryFrames["视觉"], createToggleRowFrame("视野", true, function() return Fov_Enabled end, Fov_Enable, Fov_Disable, function() return KeyBinds.fov end, function(v) KeyBinds.fov = v end))
 
-table.insert(CategoryFrames["自动"],
-    createToggleRowFrame("自动开门", true, function() return OpenNearbyDoors_Enabled end, OpenNearbyDoors_Enable, OpenNearbyDoors_Disable))
-table.insert(CategoryFrames["自动"],
-    createToggleRowFrame("自动解锁门", true, function() return UnlockNearbyDoors_Enabled end, UnlockNearbyDoors_Enable, UnlockNearbyDoors_Disable))
-table.insert(CategoryFrames["自动"],
-    createToggleRowFrame("自动拾取金钱", true, function() return AutoPickupMoney_Enabled end, AutoPickupMoney_Enable, AutoPickupMoney_Disable))
-table.insert(CategoryFrames["自动"],
-    createToggleRowFrame("自动拾取废料", true, function() return AutoPickupScraps_Enabled end, AutoPickupScraps_Enable, AutoPickupScraps_Disable))
-table.insert(CategoryFrames["自动"],
-    createToggleRowFrame("自动拾取工具", true, function() return AutoPickupTools_Enabled end, AutoPickupTools_Enable, AutoPickupTools_Disable))
+table.insert(CategoryFrames["自动"], createToggleRowFrame("自动开门", true, function() return OpenNearbyDoors_Enabled end, OpenNearbyDoors_Enable, OpenNearbyDoors_Disable, function() return KeyBinds.autodoors end, function(v) KeyBinds.autodoors = v end))
+table.insert(CategoryFrames["自动"], createToggleRowFrame("自动解锁门", true, function() return UnlockNearbyDoors_Enabled end, UnlockNearbyDoors_Enable, UnlockNearbyDoors_Disable, function() return KeyBinds.unlockdoors end, function(v) KeyBinds.unlockdoors = v end))
+table.insert(CategoryFrames["自动"], createToggleRowFrame("自动拾取金钱", true, function() return AutoPickupMoney_Enabled end, AutoPickupMoney_Enable, AutoPickupMoney_Disable, function() return KeyBinds.autopickupmoney end, function(v) KeyBinds.autopickupmoney = v end))
+table.insert(CategoryFrames["自动"], createToggleRowFrame("自动拾取废料", true, function() return AutoPickupScraps_Enabled end, AutoPickupScraps_Enable, AutoPickupScraps_Disable, function() return KeyBinds.autopickupscraps end, function(v) KeyBinds.autopickupscraps = v end))
+table.insert(CategoryFrames["自动"], createToggleRowFrame("自动拾取工具", true, function() return AutoPickupTools_Enabled end, AutoPickupTools_Enable, AutoPickupTools_Disable, function() return KeyBinds.autopickuptools end, function(v) KeyBinds.autopickuptools = v end))
 
-table.insert(CategoryFrames["杂项"],
-    createToggleRowFrame("快速拾取", true, function() return FastPickup_Enabled end, FastPickup_Enable, FastPickup_Disable))
-table.insert(CategoryFrames["杂项"],
-    createToggleRowFrame("开锁必过", true, function() return NoFailLockpick_Enabled end, NoFailLockpick_Enable, NoFailLockpick_Disable))
-table.insert(CategoryFrames["杂项"],
-    createToggleRowFrame("假倒地", true, function() return FakeDown_Enabled end, FakeDown_Enable, FakeDown_Disable))
-table.insert(CategoryFrames["杂项"],
-    createToggleRowFrame("禁止头部转动", true, function() return Stopneckmove_Enabled end, Stopneckmove_Enable, Stopneckmove_Disable))
-table.insert(CategoryFrames["杂项"],
-    createToggleRowFrame("肢体不骨折", true, function() return Unbreaklimbs_Enabled end, Unbreaklimbs_Enable, Unbreaklimbs_Disable))
-table.insert(CategoryFrames["杂项"],
-    createToggleRowFrame("瞬间换弹", true, function() return Instantreload_Enabled end, Instantreload_Enable, Instantreload_Disable))
-table.insert(CategoryFrames["杂项"],
-    createToggleRowFrame("管理员检测", true, function() return AdminCheck_Enabled end, AdminCheck_Enable, AdminCheck_Disable))
+table.insert(CategoryFrames["杂项"], createToggleRowFrame("快速拾取", true, function() return FastPickup_Enabled end, FastPickup_Enable, FastPickup_Disable, function() return KeyBinds.fastpickup end, function(v) KeyBinds.fastpickup = v end))
+table.insert(CategoryFrames["杂项"], createToggleRowFrame("开锁必过", true, function() return NoFailLockpick_Enabled end, NoFailLockpick_Enable, NoFailLockpick_Disable, function() return KeyBinds.nofaillockpick end, function(v) KeyBinds.nofaillockpick = v end))
+table.insert(CategoryFrames["杂项"], createToggleRowFrame("假倒地", true, function() return FakeDown_Enabled end, FakeDown_Enable, FakeDown_Disable, function() return KeyBinds.fakedown end, function(v) KeyBinds.fakedown = v end))
+table.insert(CategoryFrames["杂项"], createToggleRowFrame("禁止头部转动", true, function() return Stopneckmove_Enabled end, Stopneckmove_Enable, Stopneckmove_Disable, function() return KeyBinds.stopneckmove end, function(v) KeyBinds.stopneckmove = v end))
+table.insert(CategoryFrames["杂项"], createToggleRowFrame("肢体不骨折", true, function() return Unbreaklimbs_Enabled end, Unbreaklimbs_Enable, Unbreaklimbs_Disable, function() return KeyBinds.unbreaklimbs end, function(v) KeyBinds.unbreaklimbs = v end))
+table.insert(CategoryFrames["杂项"], createToggleRowFrame("瞬间换弹", true, function() return Instantreload_Enabled end, Instantreload_Enable, Instantreload_Disable, function() return KeyBinds.instantreload end, function(v) KeyBinds.instantreload = v end))
+table.insert(CategoryFrames["杂项"], createToggleRowFrame("管理员检测", true, function() return AdminCheck_Enabled end, AdminCheck_Enable, AdminCheck_Disable, function() return KeyBinds.admincheck end, function(v) KeyBinds.admincheck = v end))
 
 local function switchDefault()
     local catButton = CategoryButtons[DefaultCategory]
