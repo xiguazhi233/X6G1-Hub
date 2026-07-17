@@ -1,0 +1,726 @@
+local plrs = game:GetService("Players")
+local me = plrs.LocalPlayer
+local input = game:GetService("UserInputService")
+local run = game:GetService("RunService")
+local camera = workspace.CurrentCamera
+local tween = game:GetService("TweenService")
+local rp = game:GetService("ReplicatedStorage")
+
+local bind = Enum.KeyCode.Insert
+local ignorebind = {Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.F12, Enum.KeyCode.F9, Enum.KeyCode.Escape, Enum.KeyCode.Tab, Enum.KeyCode.Backspace, Enum.KeyCode.Space, Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3, Enum.UserInputType.MouseWheel}
+
+local WhiteList = {}
+
+local functions = {
+  AimBot = false,
+}
+
+local SectionSettings = {
+  Aimbot = {
+    Draw = false,
+    DrawSize = 50,
+    DrawColor = Color3.new(1, 1, 1),
+    TargetParts = {"Head"},
+    CheckDowned = false,
+    CheckWall = false,
+    CheckTeam = false,
+    CheckWhiteList = false,
+    Velocity = false,
+    Smooth = false,
+    SmoothSize = 0.5
+  },
+}
+
+local cockie = {
+  AimBotCircle = nil,
+  Aimbot_body = nil,
+}
+
+function Decrypt()
+  local result = ""
+  for i = 1, 50 do
+    result = result..string.char(math.random(1, 200))
+  end
+  return result
+end
+
+local GUI = Instance.new("ScreenGui")
+local Pcheck, Fcheck = pcall(function() GUI.Parent = game.CoreGui end) if Fcheck then GUI.Parent = me.PlayerGui end
+GUI.Name = Decrypt()
+GUI.ResetOnSpawn = false
+
+local Menu = Instance.new("Frame")
+Menu.Parent = GUI
+Menu.Name = Decrypt()
+Menu.BackgroundColor3 = Color3.new(0.0431373, 0.0431373, 0.0431373)
+Menu.Position = UDim2.new(0.375, 0, 0.2, 0)
+Menu.Size = UDim2.new(0.25, 0, 0.6, 0)
+Menu.Visible = true
+
+local UICMenu = Instance.new("UICorner")
+UICMenu.Parent = Menu
+UICMenu.CornerRadius = UDim.new(0, 6)
+
+local UISMenu = Instance.new("UIStroke")
+UISMenu.Parent = Menu
+UISMenu.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+UISMenu.Color = Color3.new(1, 0, 0)
+UISMenu.LineJoinMode = Enum.LineJoinMode.Round
+UISMenu.Thickness = 1.2
+
+local dragg = Instance.new("Frame")
+dragg.Parent = Menu
+dragg.Name = Decrypt()
+dragg.Active = true
+dragg.BackgroundColor3 = Color3.new(0.0431373, 0.0431373, 0.0431373)
+dragg.Position = UDim2.new(0, 0, 0, 0)
+dragg.Size = UDim2.new(0.998, 0, 0.055, 0)
+dragg.Visible = true
+
+local UICdragg = Instance.new("UICorner")
+UICdragg.Parent = dragg
+UICdragg.CornerRadius = UDim.new(0, 6)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = dragg
+Title.Name = Decrypt()
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0.05, 0, 0.05, 0)
+Title.Size = UDim2.new(0.9, 0, 0.9, 0)
+Title.TextScaled = true
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Text = "X6G1's aimbot"
+Title.Visible = true
+
+local UIGTitle = Instance.new("UIGradient")
+UIGTitle.Parent = Title
+UIGTitle.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)), ColorSequenceKeypoint.new(1, Color3.new(1, 0, 0))})
+
+local line1 = Instance.new("Frame")
+line1.Parent = Menu
+line1.Name = Decrypt()
+line1.BackgroundColor3 = Color3.new(1, 0, 0)
+line1.BorderColor3 = Color3.new(1, 0, 0)
+line1.Position = UDim2.new(0, 0, 0.055, 0)
+line1.Size = UDim2.new(0.998, 0, 0.0005, 0)
+line1.Visible = true
+
+local ScrollingMenus = Instance.new("ScrollingFrame")
+ScrollingMenus.Parent = Menu
+ScrollingMenus.BackgroundTransparency = 1
+ScrollingMenus.Position = UDim2.new(0, 0, 0.056, 0)
+ScrollingMenus.Size = UDim2.new(0.998, 0, 0.04, 0)
+ScrollingMenus.ScrollBarThickness = 0
+ScrollingMenus.ScrollingDirection = Enum.ScrollingDirection.X
+ScrollingMenus.Visible = true
+
+local UILScrolling = Instance.new("UIListLayout")
+UILScrolling.Parent = ScrollingMenus
+UILScrolling.Padding = UDim.new(0, 12)
+UILScrolling.FillDirection = Enum.FillDirection.Horizontal
+UILScrolling.SortOrder = Enum.SortOrder.LayoutOrder
+UILScrolling.Wraps = false
+UILScrolling.HorizontalAlignment = Enum.HorizontalAlignment.Left
+UILScrolling.HorizontalFlex = Enum.UIFlexAlignment.None
+UILScrolling.VerticalAlignment = Enum.VerticalAlignment.Top
+UILScrolling.VerticalFlex = Enum.UIFlexAlignment.None
+
+UILScrolling:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+  ScrollingMenus.CanvasSize = UDim2.new(0, (UILScrolling.AbsoluteContentSize.X * 1.03), 0, UILScrolling.AbsoluteContentSize.Y)
+end)
+
+local UIPScrolling = Instance.new("UIPadding")
+UIPScrolling.Parent = ScrollingMenus
+UIPScrolling.PaddingBottom = UDim.new(0, 0)
+UIPScrolling.PaddingLeft = UDim.new(0, 7)
+UIPScrolling.PaddingRight = UDim.new(0, 0)
+UIPScrolling.PaddingTop = UDim.new(0.22, 0)
+
+local line2 = Instance.new("Frame")
+line2.Parent = Menu
+line2.Name = Decrypt()
+line2.BackgroundColor3 = Color3.new(1, 0, 0)
+line2.BorderColor3 = Color3.new(1, 0, 0)
+line2.Position = UDim2.new(0, 0, 0.1, 0)
+line2.Size = UDim2.new(0.998, 0, 0.0005, 0)
+line2.Visible = true
+
+local MenusFolder = Instance.new("Folder")
+MenusFolder.Parent = Menu
+MenusFolder.Name = Decrypt()
+
+function CharStats(plr)
+  return rp.CharStats[plr.Name]
+end
+
+-- 精简的Library
+local Library = {}
+local Tabs = {}
+local Buttons = {}
+local Frames = {}
+
+function Tabs:MakeTab(Text)
+  local TabButton = Instance.new("TextButton")
+  TabButton.Parent = ScrollingMenus
+  TabButton.Name = Decrypt()
+  TabButton.BackgroundTransparency = 1
+  TabButton.Size = UDim2.new(0, 60, 0, 14)
+  TabButton.TextScaled = true
+  TabButton.TextColor3 = Color3.new(1, 1, 1)
+  TabButton.Text = Text
+  TabButton.Visible = true
+  local corner = Instance.new("UICorner")
+  corner.Parent = TabButton
+  corner.CornerRadius = UDim.new(0, 5)
+  local stroke = Instance.new("UIStroke")
+  stroke.Parent = TabButton
+  stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+  stroke.Color = Color3.new(1, 0, 0)
+  stroke.Thickness = 1
+  return TabButton
+end
+
+function Tabs:MakeScrollingMenu(Visible, button)
+  local scroll = Instance.new("ScrollingFrame")
+  scroll.Parent = MenusFolder
+  scroll.Name = Decrypt()
+  scroll.BackgroundTransparency = 1
+  scroll.Position = UDim2.new(0, 0, 0.101, 0)
+  scroll.Size = UDim2.new(0.983, 0, 0.898, 0)
+  scroll.ScrollBarThickness = 0
+  scroll.Visible = Visible
+  button.MouseButton1Click:Connect(function()
+    for _, a in pairs(MenusFolder:GetChildren()) do
+      if a then a.Visible = false end
+    end
+    scroll.Visible = true
+  end)
+  return scroll
+end
+
+function Tabs:MakeUIList(Parent)
+  local list = Instance.new("UIListLayout")
+  list.Parent = Parent
+  list.Padding = UDim.new(0.02, 0)
+  list.FillDirection = Enum.FillDirection.Vertical
+  list.SortOrder = Enum.SortOrder.LayoutOrder
+  list.HorizontalAlignment = Enum.HorizontalAlignment.Left
+  list.HorizontalFlex = Enum.UIFlexAlignment.None
+  list.VerticalAlignment = Enum.VerticalAlignment.Top
+  list.VerticalFlex = Enum.UIFlexAlignment.None
+  return list
+end
+
+function Tabs:MakeUIPadding(Parent)
+  local pad = Instance.new("UIPadding")
+  pad.Parent = Parent
+  pad.PaddingBottom = UDim.new(0, 0)
+  pad.PaddingLeft = UDim.new(0, 10)
+  pad.PaddingRight = UDim.new(0, 0)
+  pad.PaddingTop = UDim.new(0, 10)
+  return pad
+end
+
+function Frames:MakeSection(Parent)
+  local section = Instance.new("Frame")
+  section.Parent = Parent
+  section.Name = Decrypt()
+  section.BackgroundTransparency = 1
+  section.Size = UDim2.new(0.9, 0, 0.3, 0)
+  section.Visible = true
+  local corner = Instance.new("UICorner")
+  corner.Parent = section
+  corner.CornerRadius = UDim.new(0, 5)
+  local stroke = Instance.new("UIStroke")
+  stroke.Parent = section
+  stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+  stroke.Color = Color3.new(1, 0, 0)
+  stroke.Thickness = 1
+  local list = Instance.new("UIListLayout")
+  list.Parent = section
+  list.Padding = UDim.new(0, 8)
+  list.FillDirection = Enum.FillDirection.Vertical
+  list.SortOrder = Enum.SortOrder.LayoutOrder
+  list.HorizontalAlignment = Enum.HorizontalAlignment.Left
+  list.HorizontalFlex = Enum.UIFlexAlignment.None
+  list.VerticalAlignment = Enum.VerticalAlignment.Top
+  list.VerticalFlex = Enum.UIFlexAlignment.None
+  local pad = Instance.new("UIPadding")
+  pad.Parent = section
+  pad.PaddingBottom = UDim.new(0, 0)
+  pad.PaddingLeft = UDim.new(0, 10)
+  pad.PaddingRight = UDim.new(0, 0)
+  pad.PaddingTop = UDim.new(0, 10)
+  list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    section.Size = UDim2.new(0.9, 0, 0, list.AbsoluteContentSize.Y + 15)
+  end)
+  return section
+end
+
+function Buttons:MakeSectionDefaultButton(Parent, Text, data, keybind, func)
+  local text = Instance.new("TextLabel")
+  text.Parent = Parent
+  text.Name = Decrypt()
+  text.BackgroundTransparency = 1
+  text.Size = UDim2.new(0, 70, 0, 20)
+  text.TextColor3 = Color3.new(1, 1, 1)
+  text.TextScaled = true
+  text.Text = Text
+  text.Visible = true
+  local corner = Instance.new("UICorner")
+  corner.Parent = text
+  corner.CornerRadius = UDim.new(0, 6)
+  local stroke = Instance.new("UIStroke")
+  stroke.Parent = text
+  stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+  stroke.Color = Color3.new(1, 0, 0)
+  stroke.Thickness = 1
+
+  local Turnbutton = Instance.new("TextButton")
+  Turnbutton.Parent = text
+  Turnbutton.Name = Decrypt()
+  Turnbutton.BackgroundColor3 = Color3.new(1, 0, 0)
+  Turnbutton.Position = UDim2.new(1.2, 0, -0.05, 0)
+  Turnbutton.Size = UDim2.new(0, 20, 0, 20)
+  Turnbutton.Text = ""
+  Turnbutton.Visible = true
+  local corner2 = Instance.new("UICorner")
+  corner2.Parent = Turnbutton
+  corner2.CornerRadius = UDim.new(8, 8)
+  local stroke2 = Instance.new("UIStroke")
+  stroke2.Parent = Turnbutton
+  stroke2.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+  stroke2.Color = Color3.new(1, 1, 1)
+
+  Turnbutton.MouseButton1Click:Connect(function()
+    functions[data] = not functions[data]
+    Turnbutton.BackgroundColor3 = functions[data] and Color3.new(0, 1, 0.0313725) or Color3.new(1, 0, 0)
+    func()
+  end)
+
+  if keybind ~= false then
+    -- 实际不需要键绑定，但保留简单实现
+  end
+
+  return Turnbutton
+end
+
+function Buttons:MakeSectionCheckboxButton(Parent, Text, funcname, data)
+  local text = Instance.new("TextLabel")
+  text.Parent = Parent
+  text.Name = Decrypt()
+  text.BackgroundTransparency = 1
+  text.Size = UDim2.new(0, 70, 0, 20)
+  text.TextColor3 = Color3.new(1, 1, 1)
+  text.TextScaled = true
+  text.Text = Text
+  text.Visible = true
+  local corner = Instance.new("UICorner")
+  corner.Parent = text
+  corner.CornerRadius = UDim.new(0, 6)
+  local stroke = Instance.new("UIStroke")
+  stroke.Parent = text
+  stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+  stroke.Color = Color3.new(1, 0, 0)
+  stroke.Thickness = 1
+
+  local Checkbox = Instance.new("ImageButton")
+  Checkbox.Parent = text
+  Checkbox.Name = Decrypt()
+  Checkbox.BackgroundTransparency = 1
+  Checkbox.Position = UDim2.new(1.2, 0, -0.05, 0)
+  Checkbox.Size = UDim2.new(0, 20, 0, 20)
+  Checkbox.Image = "rbxassetid://6218581738"
+  Checkbox.Visible = true
+  local corner2 = Instance.new("UICorner")
+  corner2.Parent = Checkbox
+  corner2.CornerRadius = UDim.new(0, 5)
+  local stroke2 = Instance.new("UIStroke")
+  stroke2.Parent = Checkbox
+  stroke2.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+  stroke2.Color = Color3.new(1, 0, 0)
+  stroke2.Thickness = 1
+
+  if SectionSettings[funcname][data] == true then
+    Checkbox.ImageTransparency = 0
+  else
+    Checkbox.ImageTransparency = 1
+  end
+  Checkbox.MouseButton1Click:Connect(function()
+    SectionSettings[funcname][data] = not SectionSettings[funcname][data]
+    Checkbox.ImageTransparency = SectionSettings[funcname][data] and 0 or 1
+  end)
+  return Checkbox
+end
+
+function Frames:MakeSectionSlider(Parent, Text, startervalue, min, max, func)
+  local text = Instance.new("TextLabel")
+  text.Parent = Parent
+  text.Name = Decrypt()
+  text.BackgroundTransparency = 1
+  text.Size = UDim2.new(0, 40, 0, 20)
+  text.TextColor3 = Color3.new(1, 1, 1)
+  text.TextScaled = true
+  text.Text = Text
+  text.Visible = true
+
+  local Control = Instance.new("Frame")
+  Control.Parent = text
+  Control.Name = Decrypt()
+  Control.BackgroundColor3 = Color3.new(0.129412, 0.129412, 0.129412)
+  Control.Position = UDim2.new(1.15, 0, 0.05, 0)
+  Control.Size = UDim2.new(0, 80, 0, 18)
+  Control.Visible = true
+  local corner = Instance.new("UICorner")
+  corner.Parent = Control
+  corner.CornerRadius = UDim.new(8, 8)
+  local stroke = Instance.new("UIStroke")
+  stroke.Parent = Control
+  stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+  stroke.Color = Color3.new(1, 0, 0)
+  stroke.Thickness = 1
+
+  local Slider = Instance.new("TextButton")
+  Slider.Parent = Control
+  Slider.Name = Decrypt()
+  Slider.BackgroundColor3 = Color3.new(1, 1, 1)
+  Slider.Position = UDim2.new(0, 0, 0, 0)
+  Slider.Size = UDim2.new(math.clamp((startervalue - min)/(max - min), 0.1, 1), 0, 0, 18)
+  Slider.Text = ""
+  Slider.Visible = true
+  local corner2 = Instance.new("UICorner")
+  corner2.Parent = Slider
+  corner2.CornerRadius = UDim.new(8, 8)
+
+  local value = Instance.new("TextLabel")
+  value.Parent = Control
+  value.Name = Decrypt()
+  value.BackgroundTransparency = 1
+  value.Position = UDim2.new(1.1, 0, -0.05, 0)
+  value.Size = UDim2.new(0, 20, 0, 18)
+  value.TextColor3 = Color3.new(1, 1, 1)
+  value.TextScaled = true
+  value.Text = startervalue
+
+  local slide = false
+  Slider.MouseButton1Down:Connect(function() slide = true end)
+  input.InputEnded:Connect(function(key)
+    if key.UserInputType == Enum.UserInputType.MouseButton1 then slide = false end
+  end)
+  input.InputChanged:Connect(function(key)
+    if key.UserInputType == Enum.UserInputType.MouseMovement and slide then
+      local mousepos = input:GetMouseLocation().X
+      local scale = (mousepos - Control.AbsolutePosition.X)/Control.AbsoluteSize.X
+      local clamp = math.clamp(scale, 0.1, 1)
+      Slider.Size = UDim2.fromScale(clamp, 1)
+      local clampvalue = math.clamp(min + (scale * (max - min)), min, max)
+      if clampvalue < 10 then
+        value.Text = string.format("%.2f", clampvalue)
+      else
+        value.Text = math.floor(clampvalue)
+      end
+      func(clampvalue)
+    end
+  end)
+end
+
+function Buttons:MakeSectionPressButton(Parent, Text, func)
+  local text = Instance.new("TextLabel")
+  text.Parent = Parent
+  text.Name = Decrypt()
+  text.BackgroundTransparency = 1
+  text.Size = UDim2.new(0, 80, 0, 20)
+  text.TextColor3 = Color3.new(1, 1, 1)
+  text.TextScaled = true
+  text.Text = Text
+  text.Visible = true
+  local corner = Instance.new("UICorner")
+  corner.Parent = text
+  corner.CornerRadius = UDim.new(0, 5)
+  local stroke = Instance.new("UIStroke")
+  stroke.Parent = text
+  stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+  stroke.Color = Color3.new(1, 0, 0)
+  stroke.Thickness = 1
+
+  local button = Instance.new("ImageButton")
+  button.Parent = text
+  button.Name = Decrypt()
+  button.BackgroundTransparency = 1
+  button.Position = UDim2.new(1.15, 0, -0.05, 0)
+  button.Size = UDim2.new(0, 20, 0, 20)
+  button.Image = "rbxassetid://2769398451"
+  button.Visible = true
+  button.MouseButton1Click:Connect(function()
+    if func then func() end
+  end)
+end
+
+function Frames:MakeBodySelector(Table)
+  local Body = Instance.new("Frame")
+  Body.Parent = GUI
+  Body.Name = "Body"
+  Body.BackgroundColor3 = Color3.new(0, 0, 0)
+  Body.Position = UDim2.new(0.715, 0, 0.131, 0)
+  Body.Size = UDim2.new(0.2, 0, 0.2, 0)
+  Body.Visible = true
+  local aspect = Instance.new("UIAspectRatioConstraint")
+  aspect.Parent = Body
+  aspect.AspectRatio = 1
+  aspect.AspectType = Enum.AspectType.FitWithinMaxSize
+  aspect.DominantAxis = Enum.DominantAxis.Width
+
+  local function MakePart(name, pos, size)
+    local btn = Instance.new("TextButton")
+    btn.Parent = Body
+    btn.Name = name
+    btn.BackgroundColor3 = Color3.new(1,1,1)
+    btn.BorderColor3 = Color3.new(0,0,0)
+    btn.BorderSizePixel = 2
+    btn.Position = pos
+    btn.Size = size
+    btn.Text = ""
+    btn.Visible = true
+    return btn
+  end
+
+  local Head = MakePart("Head", UDim2.new(0.394,0,0.055,0), UDim2.new(0.203,0,0.203,0))
+  local Torso = MakePart("Torso", UDim2.new(0.321,0,0.261,0), UDim2.new(0.344,0,0.344,0))
+  local LeftArm = MakePart("LeftArm", UDim2.new(0.665,0,0.261,0), UDim2.new(0.172,0,0.344,0))
+  local RightArm = MakePart("RightArm", UDim2.new(0.147,0,0.261,0), UDim2.new(0.172,0,0.344,0))
+  local LeftLeg = MakePart("LeftLeg", UDim2.new(0.5,0,0.605,0), UDim2.new(0.172,0,0.344,0))
+  local RightLeg = MakePart("RightLeg", UDim2.new(0.321,0,0.605,0), UDim2.new(0.163,0,0.344,0))
+
+  local parts = {Head=Head, Torso=Torso, ["LeftArm"]=LeftArm, ["RightArm"]=RightArm, ["LeftLeg"]=LeftLeg, ["RightLeg"]=RightLeg}
+  local names = {Head="Head", Torso="Torso", LeftArm="Left Arm", RightArm="Right Arm", LeftLeg="Left Leg", RightLeg="Right Leg"}
+
+  for obj, partName in pairs(names) do
+    local btn = parts[obj]
+    local check = table.find(Table, partName)
+    if check then
+      btn.BackgroundColor3 = Color3.new(0,1,0)
+    end
+    btn.MouseButton1Click:Connect(function()
+      local idx = table.find(Table, partName)
+      if idx then
+        table.remove(Table, idx)
+        btn.BackgroundColor3 = Color3.new(1,1,1)
+      else
+        table.insert(Table, partName)
+        btn.BackgroundColor3 = Color3.new(0,1,0)
+      end
+    end)
+  end
+
+  return Body
+end
+
+-- 创建UI
+local AimbotTab = Tabs:MakeTab("自瞄")
+local MainMenu = Tabs:MakeScrollingMenu(true, AimbotTab)
+local UIList = Tabs:MakeUIList(MainMenu)
+local UIPadding = Tabs:MakeUIPadding(MainMenu)
+
+local AimbotSection = Frames:MakeSection(MainMenu)
+
+-- Aimbot 主开关
+local AimbotBtn = Buttons:MakeSectionDefaultButton(AimbotSection, "自瞄辅助", "AimBot", false, function()
+  if functions.AimBot == true then
+    local target = nil
+    local pressed = false
+    local aimtarget
+    local canusing = false
+    local FirstPerson = true
+    local predict = 15
+    local part
+    local randpart = nil
+    local lastRandomTick = tick()
+
+    local function getClosestTarget()
+      local closest, closestDist = nil, SectionSettings.Aimbot.DrawSize
+      for _, player in pairs(plrs:GetPlayers()) do
+        if player ~= me and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+          local pos, onScreen = camera:WorldToViewportPoint(player.Character:FindFirstChild("HumanoidRootPart").Position)
+          if onScreen then
+            if SectionSettings.Aimbot.CheckTeam and player.Team == me.Team then continue end
+            if SectionSettings.Aimbot.CheckWhiteList and table.find(WhiteList, player) then continue end
+            if SectionSettings.Aimbot.CheckWall then
+              local function Check()
+                local ignore = {camera, me.Character, player.Character}
+                if player.Parent ~= workspace then table.insert(ignore, player.Parent) end
+                local checkpart = player.Character:FindFirstChild("HumanoidRootPart")
+                if not checkpart then return math.huge end
+                return #camera:GetPartsObscuringTarget({checkpart.Position}, ignore)
+              end
+              if Check() > 0 then continue end
+            end
+            local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(input:GetMouseLocation().X, input:GetMouseLocation().Y)).Magnitude
+            if distance < closestDist then
+              closestDist = distance
+              closest = player
+            end
+          end
+        end
+      end
+      return closest
+    end
+
+    input.InputBegan:Connect(function(key)
+      if not input:GetFocusedTextBox() and key.UserInputType == Enum.UserInputType.MouseButton2 then
+        pressed = true
+        aimtarget = getClosestTarget()
+      end
+    end)
+    input.InputEnded:Connect(function(key)
+      if not input:GetFocusedTextBox() and key.UserInputType == Enum.UserInputType.MouseButton2 then
+        pressed = false
+        aimtarget = nil
+      end
+    end)
+
+    run.RenderStepped:Connect(function()
+      if FirstPerson then
+        local magnitude = (camera.Focus.p - camera.CFrame.p).Magnitude
+        canusing = magnitude <= 1.5
+      end
+      if functions.AimBot and pressed and aimtarget and aimtarget.Character then
+        local humanoid = aimtarget.Character:FindFirstChild("Humanoid")
+        local targetPartCount = #SectionSettings.Aimbot.TargetParts
+        if targetPartCount == 0 then part = "Head"
+        elseif targetPartCount == 1 then part = SectionSettings.Aimbot.TargetParts[1]
+        elseif targetPartCount > 1 then
+          if tick() - lastRandomTick >= .5 then
+            local rand = math.random(1, targetPartCount)
+            randpart = SectionSettings.Aimbot.TargetParts[rand]
+            lastRandomTick = tick()
+          end
+          part = randpart or SectionSettings.Aimbot.TargetParts[1]
+        end
+        if part and humanoid and humanoid.Health > 0 and canusing then
+          local targetPosition = aimtarget.Character[part].Position
+          if SectionSettings.Aimbot.Velocity then
+            targetPosition = targetPosition + aimtarget.Character[part].Velocity / predict
+          end
+          if SectionSettings.Aimbot.Smooth then
+            camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.p, targetPosition), SectionSettings.Aimbot.SmoothSize)
+          else
+            camera.CFrame = CFrame.new(camera.CFrame.Position, targetPosition)
+          end
+        end
+      end
+    end)
+
+    while functions.AimBot do
+      if SectionSettings.Aimbot.Draw then
+        if not cockie.AimBotCircle then
+          cockie.AimBotCircle = Drawing.new("Circle")
+          cockie.AimBotCircle.Color = Color3.new(1, 0, 0)
+          cockie.AimBotCircle.Thickness = 2
+          cockie.AimBotCircle.Radius = SectionSettings.Aimbot.DrawSize
+          cockie.AimBotCircle.Filled = false
+          cockie.AimBotCircle.Visible = true
+        end
+        local mousepos = input:GetMouseLocation()
+        if cockie.AimBotCircle then
+          cockie.AimBotCircle.Position = Vector2.new(mousepos.X, mousepos.Y)
+        end
+      end
+      run.RenderStepped:Wait()
+    end
+  else
+    if cockie.AimBotCircle then cockie.AimBotCircle:Remove(); cockie.AimBotCircle = nil end
+  end
+end)
+
+-- Aimbot 设置
+local AimBotDraw = Buttons:MakeSectionCheckboxButton(AimbotSection, "绘制圆圈", "Aimbot", "Draw")
+local AimBotSize = Frames:MakeSectionSlider(AimbotSection, "大小", SectionSettings.Aimbot.DrawSize, 20, 500, function(val)
+  SectionSettings.Aimbot.DrawSize = math.floor(val)
+  if cockie.AimBotCircle then cockie.AimBotCircle.Radius = SectionSettings.Aimbot.DrawSize end
+end)
+local AimBotTarget = Buttons:MakeSectionPressButton(AimbotSection, "目标部位", function()
+  if cockie.Aimbot_body then cockie.Aimbot_body:Destroy(); cockie.Aimbot_body = nil
+  else cockie.Aimbot_body = Frames:MakeBodySelector(SectionSettings.Aimbot.TargetParts) end
+end)
+local AimBotDowned = Buttons:MakeSectionCheckboxButton(AimbotSection, "检查倒地", "Aimbot", "CheckDowned")
+local AimBotWall = Buttons:MakeSectionCheckboxButton(AimbotSection, "检查墙体", "Aimbot", "CheckWall")
+local AimBotTeam = Buttons:MakeSectionCheckboxButton(AimbotSection, "检查队友", "Aimbot", "CheckTeam")
+local AimBotVelocity = Buttons:MakeSectionCheckboxButton(AimbotSection, "提前量", "Aimbot", "Velocity")
+local AimBotSmooth = Buttons:MakeSectionCheckboxButton(AimbotSection, "平滑", "Aimbot", "Smooth")
+local AimBotSmoothSize = Frames:MakeSectionSlider(AimbotSection, "平滑度", SectionSettings.Aimbot.SmoothSize, 0.1, 1, function(val)
+  SectionSettings.Aimbot.SmoothSize = val
+end)
+
+-- 通知（无幽灵）
+local notif = Instance.new("Frame")
+notif.Parent = GUI
+notif.Name = Decrypt()
+notif.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+notif.Position = UDim2.new(1, 0, 0.833, 0)
+notif.Size = UDim2.new(0, 200, 0, 40)
+notif.Visible = true
+local corner = Instance.new("UICorner")
+corner.Parent = notif
+corner.CornerRadius = UDim.new(0, 5)
+local stroke = Instance.new("UIStroke")
+stroke.Parent = notif
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Color = Color3.new(1, 0, 0)
+stroke.Thickness = 1
+local text = Instance.new("TextLabel")
+text.Parent = notif
+text.BackgroundTransparency = 1
+text.Size = UDim2.new(1, 0, 1, 0)
+text.TextColor3 = Color3.new(1, 1, 1)
+text.TextScaled = true
+text.Text = "X6G1's aimbot | Insert"
+tween:Create(notif, TweenInfo.new(0.5), {Position = UDim2.new(0.821, 0, 0.833, 0)}):Play()
+task.delay(5, function() notif:Destroy() end)
+
+-- 拖动
+dragging = false
+dragInput = nil
+dragStart = nil
+startPos = nil
+
+function UpdatePos(input)
+  local delta = input.Position - dragStart
+  local newPosition = UDim2.new(
+    startPos.X.Scale,
+    startPos.X.Offset + delta.X,
+    startPos.Y.Scale,
+    startPos.Y.Offset + delta.Y
+  )
+  tween:Create(Menu, TweenInfo.new(0.15), {Position = newPosition}):Play()
+end
+
+dragg.InputBegan:Connect(function(input)
+  if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    dragging = true
+    dragStart = input.Position
+    startPos = Menu.Position
+    input.Changed:Connect(function()
+      if input.UserInputState == Enum.UserInputState.End then
+        dragging = false
+      end
+    end)
+  end
+end)
+
+dragg.InputChanged:Connect(function(input)
+  if input.UserInputType == Enum.UserInputType.MouseMovement then
+    dragInput = input
+  end
+end)
+
+input.InputChanged:Connect(function(input)
+  if dragging and input == dragInput then
+    UpdatePos(input)
+  end
+end)
+
+input.InputBegan:Connect(function(key)
+  if key.KeyCode == bind then
+    Menu.Visible = not Menu.Visible
+  end
+end)
