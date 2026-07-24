@@ -492,4 +492,4 @@
 
 
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/xiguazhi233/X6G1-Hub/refs/heads/main/load3"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/xiguazhi233/X6G1-Hub/refs/heads/main/load3.lua"))()
